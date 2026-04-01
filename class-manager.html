@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반정보 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#242736; --border:#2e3248;
+  --accent:#4f8ef7; --accent2:#7c5cbf; --success:#3ecf8e;
+  --warn:#f5a623; --danger:#e5534b; --text:#e8eaf0; --text2:#8b90a7; --text3:#555c7a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px 16px}
+.wrap{max-width:100%;margin:0;padding:0 16px}
+header{text-align:center;margin-bottom:28px}
+.badge{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:11px;font-weight:700;letter-spacing:3px;padding:4px 12px;border-radius:20px;text-transform:uppercase;margin-bottom:12px}
+h1{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#fff 30%,var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:5px}
+.sub{color:var(--text2);font-size:13px}
+/* 탭 */
+.tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:5px}
+.tab{flex:1;padding:9px 6px;border:none;background:none;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;transition:all .2s}
+.tab:hover{color:var(--text);background:var(--surface2)}
+.tab.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.pane{display:none}.pane.on{display:block}
+/* 카드 */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:10px}
+.ct{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.ct-l{display:flex;align-items:center;gap:7px}
+.ct-l::before{content:'';display:block;width:3px;height:12px;background:var(--accent);border-radius:2px}
+/* 드롭존 */
+.dz{border:2px dashed var(--border);border-radius:10px;padding:30px 20px;text-align:center;cursor:pointer;transition:all .2s}
+.dz:hover,.dz.over{border-color:var(--accent);background:rgba(79,142,247,.05)}
+.dz input{display:none}
+.di{font-size:28px;margin-bottom:6px;display:block}
+.dt{font-size:14px;font-weight:600;margin-bottom:3px}
+.dh{font-size:12px;color:var(--text2)}
+.fsel{display:none;align-items:center;gap:9px;background:rgba(62,207,142,.1);border:1px solid rgba(62,207,142,.3);border-radius:8px;padding:9px 13px;margin-top:9px}
+.fsel.show{display:flex}
+.fn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--success);font-weight:600}
+.opt{display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px dashed var(--border);border-radius:7px;padding:9px 13px;cursor:pointer;font-size:12px;color:var(--text3);transition:all .2s;margin-top:7px}
+.opt:hover{border-color:var(--accent2);color:var(--text2)}
+.opt input{display:none}
+.on2{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2);margin-left:auto}
+/* 버튼 */
+.btn-run{width:100%;padding:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:11px;color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-run:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 24px rgba(79,142,247,.35)}
+.btn-run:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:6px 13px;border:none;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-add{background:rgba(79,142,247,.15);color:var(--accent)}.btn-add:hover{background:rgba(79,142,247,.3)}
+.btn-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:2px 6px;transition:color .15s}.btn-del:hover{color:var(--danger)}
+.btn-save{background:linear-gradient(135deg,var(--success),#2ecc8c);color:#0f1117;font-weight:700;padding:7px 16px}
+/* 진행 */
+.pw{display:none;margin-top:12px}.pw.show{display:block}
+.pbb{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:7px}
+.pb{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;width:0%;transition:width .4s ease}
+.pt{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.la{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px;max-height:120px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.9;margin-top:8px}
+.ll{color:var(--text2)}.ll.s{color:var(--success)}.ll.w{color:var(--warn)}.ll.e{color:var(--danger)}.ll.i{color:var(--accent)}
+/* 결과 */
+.rc{display:none;background:rgba(62,207,142,.07);border:1px solid rgba(62,207,142,.2);border-radius:14px;padding:20px 24px;margin-bottom:12px}
+.rc.show{display:block}
+.rt{font-size:16px;font-weight:700;color:var(--success);margin-bottom:14px}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.sb{background:var(--surface2);border-radius:9px;padding:12px;text-align:center}
+.sn{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--accent);display:block;margin-bottom:2px}
+.sl{font-size:11px;color:var(--text2)}
+.db{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;background:var(--success);border:none;border-radius:9px;color:#0f1117;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.db:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(62,207,142,.35)}
+/* 테이블 에디터 */
+.tbl-wrap{overflow-x:auto;margin-top:8px}
+.etbl{width:100%;border-collapse:collapse;font-size:12px}
+.etbl th{background:var(--surface2);color:var(--text2);padding:8px 8px;border:1px solid var(--border);font-weight:600;text-align:center;white-space:nowrap}
+.etbl td{border:1px solid var(--border);padding:2px 3px}
+.etbl tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+.etbl input,.etbl select{background:transparent;border:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;width:100%;padding:4px 5px;outline:none}
+.etbl input:focus,.etbl select:focus{background:rgba(79,142,247,.1);border-radius:3px}
+.etbl select option{background:var(--surface2);color:var(--text)}
+/* 설명 */
+.desc{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6}
+/* 토스트 */
+.toast{display:none;background:rgba(62,207,142,.15);border:1px solid rgba(62,207,142,.3);border-radius:7px;padding:7px 13px;font-size:12px;color:var(--success);margin-top:9px;text-align:center}
+.toast.show{display:block}
+/* 미리보기 */
+.pvw{overflow-x:auto;margin-top:12px}
+.pvw table{width:100%;border-collapse:collapse;font-size:11px;min-width:580px}
+.pvw th{background:var(--surface2);color:var(--text2);padding:6px 8px;border:1px solid var(--border);font-weight:600;text-align:center}
+.pvw td{padding:5px 8px;border:1px solid var(--border);text-align:center;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvw tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+.td-new{background:rgba(245,166,35,.12)!important;color:var(--warn);font-weight:600}
+.td-mg{background:rgba(79,142,247,.08)!important}
+.td-수학{color:#b39ddb}.td-영어{color:#ffcc80}.td-국어{color:#a5d6a7}.td-과탐{color:#f48fb1}.td-사탐{color:#ff8a65}
+
+/* ── 편집 테이블 ── */
+.edit-tbl-wrap{overflow-x:auto;margin-top:0;border-radius:10px;border:1px solid var(--border)}
+.edit-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
+.edit-tbl thead tr{position:sticky;top:0;z-index:10}
+.edit-tbl th{background:#1e2235;color:var(--text2);padding:10px 8px;border:1px solid var(--border);font-weight:600;text-align:center;white-space:nowrap}
+.edit-tbl td{border:1px solid #1e2235;padding:3px 4px;vertical-align:middle}
+.edit-tbl tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+.edit-tbl tr:hover td{background:rgba(79,142,247,.07)}
+.edit-tbl tr.row-new td{background:rgba(245,166,35,.08)}
+.edit-tbl tr.row-magam td{background:rgba(79,142,247,.06)}
+.edit-tbl input[type=text],.edit-tbl select{background:transparent;border:none;color:var(--text);font-family:'Noto Sans KR',sans-serif;font-size:12px;width:100%;padding:5px 6px;outline:none;border-radius:3px}
+.edit-tbl input[type=text]:focus,.edit-tbl select:focus{background:rgba(79,142,247,.15)}
+.edit-tbl select option{background:#1a1d27;color:var(--text)}
+.edit-tbl .td-num{color:var(--text3);font-size:10px;text-align:center;padding:4px 2px}
+.edit-tbl .td-subj-수학{color:#b39ddb}.edit-tbl .td-subj-영어{color:#ffcc80}
+.edit-tbl .td-subj-국어{color:#a5d6a7}.edit-tbl .td-subj-과탐{color:#f48fb1}.edit-tbl .td-subj-사탐{color:#ff8a65}
+.edit-tbl .badge-new{background:rgba(245,166,35,.2);color:var(--warn);border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700}
+.edit-tbl .badge-mg{background:rgba(79,142,247,.15);color:var(--accent);border-radius:4px;padding:2px 5px;font-size:10px}
+.edit-tbl .badge-ok{background:rgba(62,207,142,.1);color:var(--success);border-radius:4px;padding:2px 5px;font-size:10px}
+.edit-tbl .hg-btn{background:rgba(245,166,35,.15);border:1px solid rgba(245,166,35,.3);color:var(--warn);border-radius:5px;padding:3px 7px;font-size:10px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.edit-tbl .hg-btn:hover{background:rgba(245,166,35,.3)}
+
+/* 정렬 */
+.edit-tbl th{cursor:pointer;user-select:none}
+.edit-tbl th:hover{background:#252a42}
+.sort-icon{margin-left:4px;opacity:.4;font-size:10px}
+.edit-tbl th.sort-asc .sort-icon::after{content:'▲';opacity:1}
+.edit-tbl th.sort-desc .sort-icon::after{content:'▼';opacity:1}
+.edit-tbl th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:'⇅'}
+/* 캘린더 */
+.cal-day{padding:6px 4px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s}
+.cal-day:hover{background:var(--surface2)}
+.cal-day.selected{background:var(--warn);color:#0f1117;font-weight:700}
+.cal-day.other-month{color:var(--text3)}
+.cal-day.today{border:1px solid var(--accent)}
+.cal-header{padding:5px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--text2)}
+
+/* 정렬 */
+.edit-tbl th.sortable{cursor:pointer;user-select:none;transition:background .15s}
+.edit-tbl th.sortable:hover{background:#252a42}
+.edit-tbl th.sortable .sort-icon{margin-left:5px;font-size:10px;color:var(--text3);transition:color .15s}
+.edit-tbl th.sort-asc .sort-icon::after{content:'▲';color:var(--accent)}
+.edit-tbl th.sort-desc .sort-icon::after{content:'▼';color:var(--accent)}
+.edit-tbl th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:'⇅'}
+/* 자동저장 알림 */
+.autosave-bar{display:none;position:fixed;bottom:20px;right:20px;background:rgba(62,207,142,.15);border:1px solid rgba(62,207,142,.3);border-radius:10px;padding:10px 16px;font-size:12px;color:var(--success);z-index:999;backdrop-filter:blur(8px)}
+.autosave-bar.show{display:flex;align-items:center;gap:8px}
+.restore-bar{background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);margin-bottom:12px;display:none;align-items:center;justify-content:space-between;gap:12px}
+.restore-bar.show{display:flex}
+
+/* 컬럼 리사이즈 */
+.edit-tbl th{position:relative}
+.col-resizer{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:1}
+.col-resizer:hover,.col-resizer.dragging{background:var(--accent);opacity:.5}
+
+/* 현원 색상 */
+.hw-low{background:rgba(255,220,0,.25)!important;color:#ffdd00!important;font-weight:700}
+.hw-mid{background:rgba(62,207,142,.2)!important;color:#3ecf8e!important;font-weight:700}
+.hw-high{background:rgba(255,140,0,.25)!important;color:#ff8c00!important;font-weight:700}
+.hw-full{background:rgba(229,83,75,.25)!important;color:#e5534b!important;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">Academy Tool</div>
+    <h1>반정보 생성기</h1>
+    <p class="sub">수납프로그램 반정보.xlsx → 정리된 반정보시트.xlsx 자동 변환</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('gen')">⚡ 생성</button>
+    <button class="tab" onclick="switchTab('teacher')">👨‍🏫 강사설정</button>
+    <button class="tab" onclick="switchTab('room')">🏫 강의실설정</button>
+    <button class="tab" onclick="switchTab('asst')">🙋 조교설정</button>
+    <button class="tab" onclick="switchTab('schedule')">📅 배정표생성</button>
+  </div>
+
+  <!-- ══ 생성 탭 ══ -->
+  <div class="pane on" id="pane-gen">
+    <div class="card">
+      <div class="ct"><div class="ct-l">STEP 1 &nbsp;반정보.xlsx 업로드</div></div>
+      <div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+        <input type="file" id="fi" accept=".xlsx,.xls">
+        <span class="di">📂</span>
+        <div class="dt">파일을 드래그하거나 클릭해서 선택</div>
+        <div class="dh">수납프로그램에서 받은 반정보.xlsx 파일</div>
+      </div>
+      <div class="fsel" id="fsel"><span>✅</span><div><div class="fn" id="fname"></div><div style="font-size:11px;color:var(--text2);margin-top:2px" id="finfo"></div></div></div>
+      <label class="opt"><input type="file" id="fi2" accept=".xlsx"><span>📎</span><span>기존 반정보시트.xlsx 불러오기 (강의실·수강료 등 수동입력 데이터 유지)</span><span class="on2" id="fname2"></span></label>
+    </div>
+    <div class="card">
+      <div class="ct"><div class="ct-l">STEP 2 &nbsp;생성 실행</div></div>
+      <button class="btn-run" id="runBtn" disabled onclick="processFile()">⚡ 반정보시트 생성하기</button>
+      <div class="pw" id="pw">
+        <div class="pbb"><div class="pb" id="pb"></div></div>
+        <div class="pt" id="pt">처리 중...</div>
+        <div class="la" id="la"></div>
+      </div>
+    </div>
+    <div class="rc" id="rc">
+      <div class="rt" id="rcTitle">✅ 생성 완료 — 아래에서 바로 수정 후 다운로드하세요</div>
+      <div class="restore-bar" id="restoreBar">
+        <span id="restoreMsg"></span>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button onclick="restoreData()" style="padding:6px 14px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">불러오기</button>
+          <button onclick="dismissRestore()" style="padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text2);cursor:pointer;font-family:inherit;font-size:12px">무시</button>
+        </div>
+      </div>
+      <div class="sg">
+        <div class="sb"><span class="sn" id="sTotal">0</span><span class="sl">전체 반</span></div>
+        <div class="sb"><span class="sn" id="sNew" style="color:var(--warn)">0</span><span class="sl">신규</span></div>
+        <div class="sb"><span class="sn" id="sKept" style="color:var(--success)">0</span><span class="sl">기존유지</span></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <button class="db" onclick="doDownload()">⬇ 반정보시트.xlsx 다운로드</button>
+        <div style="font-size:12px;color:var(--text2)">수정 내용은 다운로드에 자동 반영됩니다</div>
+      </div>
+      <!-- 필터/검색 -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <input type="text" id="filterText" class="fi" style="flex:1;min-width:160px;font-size:12px;padding:7px 11px" placeholder="🔍 반명, 강사명 검색...">
+        <select id="filterSubj" class="fi" style="width:100px;font-size:12px;padding:7px 8px">
+          <option value="">전체 과목</option>
+          <option>수학</option><option>국어</option><option>영어</option>
+          <option>과탐</option><option>사탐</option><option>2응</option><option>기타</option>
+        </select>
+        <select id="filterStatus" class="fi" style="width:90px;font-size:12px;padding:7px 8px">
+          <option value="">전체 상태</option>
+          <option>신규</option><option>운영중</option><option>마감</option>
+        </select>
+      </div>
+      <!-- 편집 테이블 -->
+      <div class="edit-tbl-wrap">
+        <table class="edit-tbl" id="editTbl">
+          <thead>
+            <tr>
+              <th style="width:32px" onclick="sortBy('#')">#<span class="sort-icon"></span></th>
+              <th style="min-width:100px" class="sortable" onclick="sortTable('반형태')">반형태<span class="sort-icon"></span></th>
+              <th style="min-width:220px" class="sortable" onclick="sortTable('반명')">반명<span class="sort-icon"></span></th>
+              <th style="width:70px" class="sortable" onclick="sortTable('정규/특강')">정규/특강<span class="sort-icon"></span></th>
+              <th style="width:65px" class="sortable" onclick="sortTable('과목')">과목<span class="sort-icon"></span></th>
+              <th style="width:90px" class="sortable" onclick="sortTable('강사명')">강사명<span class="sort-icon"></span></th>
+              <th style="width:60px" class="sortable" onclick="sortTable('요일')">요일<span class="sort-icon"></span></th>
+              <th style="width:110px" class="sortable" onclick="sortTable('시간')">시간<span class="sort-icon"></span></th>
+              <th style="width:65px" class="sortable" onclick="sortTable('회차')">회차<span class="sort-icon"></span></th>
+              <th style="width:70px" class="sortable" onclick="sortTable('개강일')">개강일<span class="sort-icon"></span></th>
+              <th style="min-width:120px" onclick="sortBy('휴강일')">휴강일<span class="sort-icon"></span></th>
+              <th style="width:50px" class="sortable" onclick="sortTable('현원')">현원<span class="sort-icon"></span></th>
+              <th style="width:80px" class="sortable" onclick="sortTable('관')">관<span class="sort-icon"></span></th>
+              <th style="width:110px" class="sortable" onclick="sortTable('강의실')">강의실<span class="sort-icon"></span></th>
+              <th style="min-width:140px" onclick="sortBy('요일별시간')">요일별시간<span class="sort-icon"></span></th>
+              <th style="width:90px" class="sortable" onclick="sortTable('월수강료')">월수강료<span class="sort-icon"></span></th>
+              <th style="width:90px" class="sortable" onclick="sortTable('회차당수강료')">회차당수강료<span class="sort-icon"></span></th>
+              <th style="min-width:180px" onclick="sortBy('수업특징')">수업특징<span class="sort-icon"></span></th>
+              <th style="width:70px" onclick="sortBy('크로스그룹')">크로스그룹<span class="sort-icon"></span></th>
+              <th style="width:70px" onclick="sortBy('크로스순서')">크로스순서<span class="sort-icon"></span></th>
+              <th style="width:70px" onclick="sortBy('크로스비율')">크로스비율<span class="sort-icon"></span></th>
+              <th style="width:60px" class="sortable" onclick="sortTable('상태')">상태<span class="sort-icon"></span></th>
+            </tr>
+          </thead>
+          <tbody id="editBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 휴강일 캘린더 팝업 -->
+    <div id="calOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center">
+      <div id="calBox" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;min-width:320px;max-width:380px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span style="font-weight:700;font-size:14px">휴강일 선택</span>
+          <button onclick="closeCal()" style="background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <button onclick="calPrevMonth()" style="background:var(--surface2);border:none;color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer">‹</button>
+          <span id="calTitle" style="font-weight:600;font-size:13px"></span>
+          <button onclick="calNextMonth()" style="background:var(--surface2);border:none;color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer">›</button>
+        </div>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:14px"></div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">선택된 날짜: <span id="calSelected" style="color:var(--warn)">없음</span></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="applyCal()" style="flex:1;padding:9px;background:var(--success);border:none;border-radius:8px;color:#0f1117;font-weight:700;cursor:pointer;font-family:inherit">적용</button>
+          <button onclick="clearCal()" style="padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-family:inherit">초기화</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 강사설정 탭 ══ -->
+  <div class="pane" id="pane-teacher">
+    <div class="card">
+      <div class="ct">
+        <div class="ct-l">강사 목록 및 담당과목</div>
+        <div style="display:flex;gap:7px">
+          <button class="btn-sm btn-add" onclick="addRow('teacher')">+ 추가</button>
+          <button class="btn-sm btn-save" onclick="saveCfg('teacher')">💾 저장</button>
+        </div>
+      </div>
+      <p class="desc">강사명(T 제외)과 담당과목을 등록하세요. 반명에서 과목이 추출되지 않을 때 강사명으로 자동 보완됩니다.<br>설정은 브라우저에 자동 저장되며 다음번에도 유지됩니다.</p>
+      <div class="tbl-wrap">
+        <table class="etbl">
+          <thead><tr><th style="width:130px" class="sortable" onclick="sortCfgTable('teacher','강사명',this)">강사명<span class="sort-icon"></span></th><th style="width:110px" class="sortable" onclick="sortCfgTable('teacher','담당과목',this)">담당과목<span class="sort-icon"></span></th><th class="sortable" onclick="sortCfgTable('teacher','비고',this)">비고<span class="sort-icon"></span></th><th style="width:36px"></th></tr></thead>
+          <tbody id="tbody-teacher"></tbody>
+        </table>
+      </div>
+      <div class="toast" id="toast-teacher">✅ 저장되었습니다</div>
+    </div>
+  </div>
+
+  <!-- ══ 강의실설정 탭 ══ -->
+  <div class="pane" id="pane-room">
+    <div class="card">
+      <div class="ct">
+        <div class="ct-l">강의실 목록</div>
+        <div style="display:flex;gap:7px">
+          <button class="btn-sm btn-add" onclick="addRow('room')">+ 추가</button>
+          <button class="btn-sm btn-save" onclick="saveCfg('room')">💾 저장</button>
+        </div>
+      </div>
+      <p class="desc">강의실 정보를 관리합니다. 사용여부를 N으로 설정하면 배정표에 포함되지 않습니다.</p>
+      <div class="tbl-wrap">
+        <table class="etbl">
+          <thead><tr><th class="sortable" onclick="sortCfgTable('room','관',this)">관<span class="sort-icon"></span></th><th class="sortable" onclick="sortCfgTable('room','강의실명',this)">강의실명<span class="sort-icon"></span></th><th style="width:60px" class="sortable" onclick="sortCfgTable('room','수용인원',this)">수용인원<span class="sort-icon"></span></th><th style="width:80px" class="sortable" onclick="sortCfgTable('room','유형',this)">유형<span class="sort-icon"></span></th><th class="sortable" onclick="sortCfgTable('room','담당자',this)">담당자<span class="sort-icon"></span></th><th style="width:60px" class="sortable" onclick="sortCfgTable('room','사용여부',this)">사용여부<span class="sort-icon"></span></th><th class="sortable" onclick="sortCfgTable('room','비고',this)">비고<span class="sort-icon"></span></th><th style="width:36px"></th></tr></thead>
+          <tbody id="tbody-room"></tbody>
+        </table>
+      </div>
+      <div class="toast" id="toast-room">✅ 저장되었습니다</div>
+    </div>
+  </div>
+
+  <!-- ══ 조교설정 탭 ══ -->
+  <div class="pane" id="pane-asst">
+    <div class="card">
+      <div class="ct">
+        <div class="ct-l">조교 근무 정보</div>
+        <div style="display:flex;gap:7px">
+          <button class="btn-sm btn-add" onclick="addRow('asst')">+ 추가</button>
+          <button class="btn-sm btn-save" onclick="saveCfg('asst')">💾 저장</button>
+        </div>
+      </div>
+      <p class="desc">조교 이름과 요일별 출퇴근 시간을 입력하세요. 배정표 생성 시 자동으로 반영됩니다.</p>
+      <div class="tbl-wrap">
+        <table class="etbl">
+          <thead><tr><th class="sortable" onclick="sortCfgTable('asst','이름',this)">이름<span class="sort-icon"></span></th><th class="sortable" onclick="sortCfgTable('asst','근무요일',this)">근무요일<span class="sort-icon"></span></th><th>월출</th><th>월퇴</th><th>화출</th><th>화퇴</th><th>수출</th><th>수퇴</th><th>목출</th><th>목퇴</th><th>금출</th><th>금퇴</th><th>토출</th><th>토퇴</th><th>일출</th><th>일퇴</th><th style="width:36px"></th></tr></thead>
+          <tbody id="tbody-asst"></tbody>
+        </table>
+      </div>
+      <div class="toast" id="toast-asst">✅ 저장되었습니다</div>
+    </div>
+  </div>
+</div>
+
+  <!-- ══ 배정표생성 탭 ══ -->
+  <div class="pane" id="pane-schedule">
+    <div class="card">
+      <div class="ct"><div class="ct-l">기간 및 파일명 설정</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;align-items:end">
+        <div class="fgr"><label class="fl">시작일</label><input type="date" class="fi" id="startDate" value="2026-03-01"></div>
+        <div class="fgr"><label class="fl">종료일</label><input type="date" class="fi" id="endDate" value="2026-05-31"></div>
+        <div class="fgr"><label class="fl">파일명</label><input type="text" class="fi" id="schedFileName" value="강의실배정표_26년_3월개강"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct"><div class="ct-l">배정표 생성 실행</div></div>
+      <div id="schedInfo" style="font-size:12px;color:var(--text2);margin-bottom:10px">반정보 생성 탭에서 반정보를 먼저 생성하세요</div>
+      <button class="btn-run" id="schedRunBtn" onclick="runGenerate()">⚡ 배정표 생성하기</button>
+      <div class="pw" id="schedPw">
+        <div class="pbb"><div class="pb" id="schedPb"></div></div>
+        <div class="pt" id="schedPt">처리 중...</div>
+        <div class="la" id="schedLa"></div>
+      </div>
+    </div>
+    <div class="rc" id="schedRc">
+      <div class="rt">✅ 배정표 생성 완료!</div>
+      <div class="sg">
+        <div class="sb"><span class="sn" id="sDays">0</span><span class="sl">생성 일수</span></div>
+        <div class="sb"><span class="sn" id="sClasses">0</span><span class="sl">배정 수업수</span></div>
+        <div class="sb"><span class="sn" id="sRooms">0</span><span class="sl">사용 강의실</span></div>
+      </div>
+      <button class="db" onclick="doSchedDownload()">⬇ 배정표.xlsx 다운로드</button>
+    </div>
+  </div>
+
+
+<!-- 자동저장 알림 -->
+<div class="autosave-bar" id="autosaveBar">💾 자동 저장됨</div>
+
+<script>
+// ══════════════════════════════════════════
+// 기본 데이터
+// ══════════════════════════════════════════
+const DEF = {
+  teacher: [
+    ['강지훈','수학',''],['고요한','수학',''],['구본경','과탐',''],['권정미','과탐',''],
+    ['글로리아','영어',''],['김민주','과탐',''],['김상길','수학',''],['김아영','수학',''],
+    ['김익성','영어',''],['김재호','국어',''],['김지원','수학',''],['남혜원','영어',''],
+    ['노선오','영어','클레어T'],['박수진','수학',''],['박진아','국어',''],['박창호','수학',''],
+    ['박호찬','영어',''],['서정혁','수학',''],['소현도','수학',''],['손나래','영어',''],
+    ['손용문','국어',''],['신인섭','사탐',''],['신정수','수학',''],['신지현','과탐',''],
+    ['양현','과탐',''],['오대현','수학',''],['오유빈','수학',''],['원다송','수학',''],
+    ['위정혜','과탐',''],['윤호진','과탐',''],['이세경','과탐',''],['이숙희','국어',''],
+    ['이용환','사탐',''],['이재규','수학',''],['장수원','수학',''],['장지환','수학',''],
+    ['장한인','수학',''],['장해든누리','과탐',''],['최신성','사탐',''],['홍주혜','영어',''],
+    ['홍지현','영어',''],['황승혁','과탐',''],['공다경','2응','소장'],['박영중','2응','소장'],
+    ['김선영','기타','학습코칭'],
+  ],
+  room: [
+    ['본관','본-대1',60,'수업용','','Y',''],['본관','본-대2',30,'수업용','','Y',''],
+    ['본관','본-202',12,'수업용','','Y',''],['본관','본-203',8,'수업용','','Y',''],
+    ['본관','본-205',25,'수업용','','Y',''],['본관','본-206',10,'사무실','김호중','Y','입시컨설팅'],
+    ['2관','2관-701',40,'수업용','','Y',''],['2관','2관702',12,'수업용','','Y',''],
+    ['2관','2관-703',15,'수업용','','Y',''],['2관','CT,교무',6,'교무실','','Y',''],
+    ['3관','3관-사무실',0,'사무실','','Y',''],['3관','3관-101',100,'수업용','','Y',''],
+    ['3관','3관-102',50,'수업용','','Y',''],['4관','4관-201',150,'수업용','','Y',''],
+    ['4관','4관-사무실',0,'사무실','','Y',''],['4관','공감',40,'기타','','Y',''],
+    ['7관','7관-501',27,'수업용','','Y',''],['7관','7관-502',40,'수업용','','Y',''],
+    ['7관','7관-503',12,'수업용','','Y',''],['7관','7관-504',60,'수업용','','Y',''],
+    ['8관','8관 401',14,'수업용','','Y',''],['8관','8관 402',13,'수업용','','Y',''],
+    ['8관','8관 403',42,'수업용','','Y',''],['8관','8관 404',0,'사무실','공다경','Y',''],
+    ['8관','8관 405',0,'사무실','박영중','Y',''],['5관','5관-501',10,'수업용','','Y',''],
+    ['5관','5관-502',0,'사무실','김지원','Y',''],['5관','5관-503',25,'수업용','','Y',''],
+    ['5관','5관-504',10,'수업용','','Y',''],['5관','5관-505',10,'수업용','','Y',''],
+    ['5관','5관-506',10,'수업용','','Y',''],['5관','5관-교무실',6,'교무실','','Y',''],
+    ['6관','6관-301',15,'수업용','','Y',''],['6관','6관-302',6,'교무실','','Y','교무실6명'],
+    ['6관','6관-303',15,'수업용','','Y',''],['6관','6관-304',15,'수업용','','Y',''],
+    ['6관','6관-305',6,'수업용','','Y',''],['6관','6관-306',15,'수업용','','Y',''],
+  ],
+  asst: [
+    ['김가연','월수목토','08:00','13:00','','','08:00','13:00','08:00','13:00','','','08:00','13:00','',''],
+    ['이정민','금토','','','','','','','','','08:30','17:00','08:30','17:00','',''],
+    ['허찬','월화목금','08:00','13:00','08:00','13:00','','','08:00','13:00','08:00','13:00','','','',''],
+    ['안수민','수금','','','','','08:00','13:00','','','08:00','13:00','','','',''],
+  ],
+};
+
+// ══════════════════════════════════════════
+// 저장/로드 (localStorage)
+// ══════════════════════════════════════════
+function load(k){ try{const v=localStorage.getItem('banjg_'+k);return v?JSON.parse(v):JSON.parse(JSON.stringify(DEF[k]));}catch{return JSON.parse(JSON.stringify(DEF[k]));} }
+function save(k,d){ try{localStorage.setItem('banjg_'+k,JSON.stringify(d));}catch{} }
+
+let CFG = { teacher:load('teacher'), room:load('room'), asst:load('asst') };
+
+// ══════════════════════════════════════════
+// 탭
+// ══════════════════════════════════════════
+function switchTab(id){
+  const ids=['gen','teacher','room','asst','schedule'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',ids[i]===id));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pane-'+id).classList.add('on');
+  if(id==='schedule'){
+    const cnt=resultRows.filter(r=>r['강의실']&&r['요일']).length;
+    const el=document.getElementById('schedInfo');
+    if(el) el.textContent=cnt>0?'반정보 '+cnt+'개 로드됨 (강의실 입력된 반 기준)':'⚠️ 반정보 생성 탭에서 강의실을 먼저 입력하세요';
+    const btn=document.getElementById('schedRunBtn');
+    if(btn) btn.disabled=cnt===0;
+  }
+}
+
+// ══════════════════════════════════════════
+// 테이블 렌더
+// ══════════════════════════════════════════
+const SUBJ_OPTS = ['수학','국어','영어','과탐','사탐','2응','기타'];
+const ROOM_TYPES = ['수업용','사무실','교무실','기타'];
+const YN = ['Y','N'];
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function inp(v,w){ return `<input type="text" value="${esc(v)}"${w?` style="width:${w}px"`:''}>`; }
+function sel(opts,v){ return `<select>${opts.map(o=>`<option${o===String(v||'')?' selected':''}>${o}</option>`).join('')}</select>`; }
+
+function renderTeacher(){
+  document.getElementById('tbody-teacher').innerHTML = CFG.teacher.map((r,i)=>`
+    <tr>
+      <td>${inp(r[0])}</td>
+      <td>${sel(SUBJ_OPTS,r[1])}</td>
+      <td>${inp(r[2])}</td>
+      <td><button class="btn-del" onclick="delRow('teacher',${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderRoom(){
+  document.getElementById('tbody-room').innerHTML = CFG.room.map((r,i)=>`
+    <tr>
+      <td>${inp(r[0],60)}</td>
+      <td>${inp(r[1],80)}</td>
+      <td><input type="number" value="${r[2]||0}" style="background:transparent;border:none;color:var(--text);font-size:12px;width:52px;text-align:center;outline:none"></td>
+      <td>${sel(ROOM_TYPES,r[3])}</td>
+      <td>${inp(r[4],70)}</td>
+      <td>${sel(YN,r[5])}</td>
+      <td>${inp(r[6])}</td>
+      <td><button class="btn-del" onclick="delRow('room',${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderAsst(){
+  document.getElementById('tbody-asst').innerHTML = CFG.asst.map((r,i)=>`
+    <tr>
+      <td>${inp(r[0],70)}</td>
+      <td>${inp(r[1],60)}</td>
+      ${(r.slice(2).concat(Array(14).fill(''))).slice(0,14).map(v=>`<td><input type="text" value="${esc(v)}" style="width:44px" placeholder="00:00"></td>`).join('')}
+      <td><button class="btn-del" onclick="delRow('asst',${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function addRow(type){
+  if(type==='teacher') CFG.teacher.push(['','수학','']);
+  else if(type==='room') CFG.room.push(['','',0,'수업용','','Y','']);
+  else CFG.asst.push(Array(16).fill(''));
+  render(type);
+  // 새 행으로 스크롤
+  const tb=document.getElementById('tbody-'+type);
+  if(tb.lastElementChild) tb.lastElementChild.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function delRow(type,idx){
+  CFG[type].splice(idx,1); render(type);
+}
+
+function render(type){
+  if(type==='teacher') renderTeacher();
+  else if(type==='room') renderRoom();
+  else renderAsst();
+}
+
+function collectCfg(type){
+  const tb=document.getElementById('tbody-'+type);
+  return [...tb.querySelectorAll('tr')].map(tr=>{
+    const cells=[...tr.querySelectorAll('td')].slice(0,-1);
+    return cells.map(td=>{
+      const i=td.querySelector('input'), s=td.querySelector('select');
+      return i?i.value:(s?s.value:'');
+    });
+  });
+}
+
+function saveCfg(type){
+  const data=collectCfg(type);
+  CFG[type]=data;
+  save(type,data);
+  const t=document.getElementById('toast-'+type);
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// 강사→과목 맵 (항상 최신 CFG 기준)
+function tmap(){
+  const m={};
+  (CFG.teacher.length?CFG.teacher:DEF.teacher).forEach(r=>{if(r[0]&&r[1]) m[r[0].trim()]=r[1];});
+  return m;
+}
+
+// ══════════════════════════════════════════
+// 파일 처리
+// ══════════════════════════════════════════
+let srcWb=null, existingData={}, resultWb=null;
+
+document.getElementById('fi').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  document.getElementById('fname').textContent=f.name;
+  document.getElementById('finfo').textContent=`${(f.size/1024).toFixed(1)} KB`;
+  document.getElementById('fsel').classList.add('show');
+  const r=new FileReader();
+  r.onload=ev=>{srcWb=XLSX.read(ev.target.result,{type:'array'});document.getElementById('runBtn').disabled=false;};
+  r.readAsArrayBuffer(f);
+});
+
+document.getElementById('fi2').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  document.getElementById('fname2').textContent=f.name;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const wb=XLSX.read(ev.target.result,{type:'array'});
+    if(!wb.SheetNames.includes('반정보')) return;
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets['반정보'],{defval:''});
+    existingData={};
+    rows.forEach(row=>{
+      const key=`${row['강사명']}_${row['요일']}_${row['시간']}_${row['개강일']}`;
+      existingData[key]={월수강료:row['월수강료'],회차당수강료:row['회차당수강료'],수업특징:row['수업특징'],관:row['관'],강의실:row['강의실'],크로스그룹:row['크로스그룹'],크로스순서:row['크로스순서'],크로스비율:row['크로스비율']};
+    });
+    log(`기존 반정보 로드: ${Object.keys(existingData).length}개`,'i');
+  };
+  r.readAsArrayBuffer(f);
+});
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById('fi').files=dt.files;document.getElementById('fi').dispatchEvent(new Event('change'));}
+});
+
+// ══════════════════════════════════════════
+// 파서
+// ══════════════════════════════════════════
+function shouldExclude(bn,bh){
+  if(!bn||typeof bn!=='string') return true;
+  const t=bn.trim();
+  if(/^X[-)]/.test(t)) return true;
+  if(/^(?:폐[)\]]|\(폐강\)|종강\])/.test(t)) return true;
+  if(/^[-=*★▶◀.►◄\s]+$/.test(t)) return true;
+  if(/[-─]{3,}/.test(t)) return true;
+  if(/^\*+\s*[↓↑]/.test(t)) return true;
+  if(/[-─]{2,}.+[-─]{2,}/.test(t)) return true;
+  if(/^\[/.test(t)&&/컨설팅|자소서|보고서|면접|MyGPTeam|AI HOW|콴다|장학생/.test(t)) return true;
+  if(/★/.test(t)&&/문의|신청|상담|대상|접수|납부/.test(t)) return true;
+  if(bh&&/레벨테스트|설명회|진단평가|모의고사|정규 테스트|입반테스트/.test(bh)) return true;
+  if(/^(?:26\s)?\d{1,2}\/\d{1,2}/.test(t)) return true;
+  if(/^(?:26\s)?(?:수학|영어|중등|고등|예비).{0,10}(?:레벨테스트|입반테스트|진단평가)/.test(t)) return true;
+  if(/설명회/.test(t)&&!/[가-힣]{2,4}T/.test(t)) return true;
+  const hasT=/[가-힣]{2,4}T|원장|소장|팀장/.test(t);
+  const hasTm=/[paPA]\d{1,2}|am\d|pm\d|\d{1,2}:\d{2}/i.test(t);
+  const hasD=/[월화수목금토일]/.test(t);
+  if(!hasT&&!(hasTm&&hasD)) return true;
+  return false;
+}
+
+
+// 시간 표기 정규화: pm→p, am→a, 대문자→소문자, ~→-
+function normTime(s) {
+  if (!s) return s;
+  return s.replace(/pm/gi, 'p').replace(/am/gi, 'a')
+          .replace(/P(?=\d)/g, 'p').replace(/A(?=\d)/g, 'a')
+          .replace(/~/g, '-');
+}
+
+function parseBan(text,damim){
+  const r={강사명:'',요일:'',시간:'',요일별시간:'',회차:'',개강일:'',정규특강:''};
+  if(!text) return r;
+
+  // 정규/특강
+  if(/정규|계속반/.test(text)) r.정규특강='정규';
+  else if(/특강|브릿지|스파르타|집중반|완성반|단기|시즌/.test(text)) r.정규특강='특강';
+  else r.정규특강=/\d+회/.test(text)?'특강':'정규';
+
+  // 강사명 - 복수강사(김지원/장한인T) 포함
+  const tbl=tmap();
+  const tmMulti=text.match(/([가-힣]{2,4})\/([가-힣]{2,4}T?)(?:[_.\s]|$)/);
+  if(tmMulti){
+    const n1=tmMulti[1], raw2=tmMulti[2], n2=raw2.replace(/T$/,'');
+    if(tbl[n1]||tbl[n2]||/T$/.test(raw2)){
+      r.강사명=n1+'T/'+((/T$/.test(raw2))?raw2:raw2+'T');
+    }
+  }
+  if(!r.강사명){
+    const tm=text.match(/([가-힣]{2,4}T(?:\/[가-힣]{2,4}T)?)/);
+    if(tm){ r.강사명=tm[1]; }
+    else {
+      const tm2=text.match(/[_]([가-힣]{2,4})[_\s]/);
+      if(tm2&&tbl[tm2[1]]) r.강사명=tm2[1];
+      else if(damim&&String(damim).trim()&&String(damim).trim()!=='nan')
+        r.강사명=String(damim).split(/[,，\/]/)[0].trim();
+    }
+  }
+
+  // 요일
+  const dm = text.match(/[_\s.]([월화수목금토일]{1,7})\s*(?:[paPA]|\d)/)
+          || text.match(/\)([월화수목금토일]{1,7})\s*(?:[paPA]|\d)/)
+          || text.match(/([월화수목금토일]{2,7})\([토일월화수목금]+\)\s*(?:[paPA]|\d)/)
+          || text.match(/_([월화수목금토일]{1,7})_/);
+  if(dm) r.요일=dm[1];
+
+  // 시간 - 복합 요일별 시간 먼저
+  const dual=text.match(/([paPA]\d{1,2}(?::\d{2})?[-~][paPA]?\d{1,2}(?::\d{2})?)\/([paPA]\d{1,2}(?::\d{2})?[-~][paPA]?\d{1,2}(?::\d{2})?)/i);
+  if(dual){
+    const t1=normTime(dual[1]), t2=normTime(dual[2]);
+    r.시간=t1;
+
+    // 요일별시간 파싱
+    const 요일=r.요일||'';
+    const bracket=text.match(/([월화수목금토일]{1,6})\(([월화수목금토일]+)\)/);
+
+    if(bracket){
+      // 케이스2: 화목(토)p5-10/a9:30 → 화목=t1, 토=t2
+      r.요일별시간=bracket[1]+t1+' / '+bracket[2]+t2;
+    } else if(요일.length===3){
+      // 케이스3: 화목토p5-10/a9:30 → 화목=t1, 토=t2
+      r.요일별시간=요일.slice(0,-1)+t1+' / '+요일.slice(-1)+t2;
+    } else if(요일.length===2){
+      // 케이스1: 수토p5-10/a9:30 → 수=t1, 토=t2
+      // 특이케이스: 수토p5-7,p8-10/p1-3 → 수=p5-10(대표), 토=p1-3
+      const commaT1=text.match(/([paPA]\d{1,2}-\d{1,2}),([paPA]\d{1,2}-\d{1,2})\//i);
+      const d1=commaT1?normTime(commaT1[1]):t1;
+      r.요일별시간=요일[0]+d1+' / '+요일[1]+t2;
+    } else {
+      r.요일별시간=t1+'/'+t2;
+    }
+  } else {
+    const tmt = text.match(/([paPA]\d{1,2}(?::\d{2})?[-~:][paPA]?\d{1,2}(?::\d{2})?)/i)
+             || text.match(/((?:am|pm)\d{1,2}(?::\d{2})?(?:[-~]\d{1,2}(?::\d{2})?)?)/i)
+             || text.match(/[월화수목금토일](\d{1,2}-\d{1,2})(?:_|\(|$)/);
+    if(tmt) r.시간=normTime(tmt[1]);
+  }
+
+  // 회차
+  const sm=text.match(/(\d+(?:[+]\d+)?(?:회|직))/); if(sm) r.회차=sm[1];
+
+  // 개강일
+  const d1=text.match(/[_(](\d{1,2})\/(\d{1,2})\/\d{1,2}[)_\s]/);
+  const d2=text.match(/[_(](\d{1,2})\/\s*[)_\s]/);
+  const d3=text.match(/[_(](\d{1,2})\/\s*$/);
+  const d4=text.match(/[_(](\d{1,2}\/\d{1,2})[)_]?$/)||text.match(/[_(](\d{1,2}\/\d{1,2})[)_]/);
+  if(d1) r.개강일=d1[1]+'/'+d1[2];
+  else if(d2) r.개강일=d2[1]+'월';
+  else if(d3) r.개강일=d3[1]+'월';
+  else if(d4) r.개강일=d4[1];
+
+  return r;
+}
+
+function getSubject(bn,bh,teacher){
+  const text=(bn||'')+' '+(bh||'');
+  const sl=[['물리','과탐'],['화학','과탐'],['생명','과탐'],['지구','과탐'],['통합과학','과탐'],
+    ['한국사','사탐'],['통합사회','사탐'],['사회문화','사탐'],['윤리','사탐'],
+    ['수학','수학'],['국어','국어'],['영어','영어'],['과탐','과탐'],['사탐','사탐']];
+  for(const[kw,s] of sl) if(text.includes(kw)) return s;
+  if(teacher){ const m=tmap(); const tn=String(teacher).replace(/T$/,'').split('/')[0].trim(); return m[tn]||m[teacher]||''; }
+  return '';
+}
+
+// ══════════════════════════════════════════
+// 로그 / 진행
+// ══════════════════════════════════════════
+function log(msg,type=''){
+  const el=document.getElementById('la');
+  const l=document.createElement('div');l.className='ll '+type;l.textContent='> '+msg;
+  el.appendChild(l);el.scrollTop=el.scrollHeight;
+}
+function setP(p,m){document.getElementById('pb').style.width=p+'%';document.getElementById('pt').textContent=m;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ══════════════════════════════════════════
+// 생성 실행
+// ══════════════════════════════════════════
+let resultRows=[];
+async function processFile(){
+  if(!srcWb) return;
+  // 열려있는 설정 탭이 있으면 최신값 수집
+  ['teacher','room','asst'].forEach(type=>{
+    const tb=document.getElementById('tbody-'+type);
+    if(tb&&tb.children.length) CFG[type]=collectCfg(type);
+  });
+
+  document.getElementById('pw').classList.add('show');
+  document.getElementById('runBtn').disabled=true;
+  document.getElementById('la').innerHTML='';
+  document.getElementById('rc').classList.remove('show');
+  await sleep(50);
+  setP(10,'원본 데이터 읽는 중...');
+
+  const ws=srcWb.Sheets[srcWb.SheetNames[0]];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  let headerRow=-1;
+  for(let i=0;i<rawRows.length;i++) if(String(rawRows[i][0]).includes('반형태')){headerRow=i;break;}
+  if(headerRow<0){log('헤더를 찾을 수 없습니다.','e');return;}
+
+  await sleep(50); setP(30,'필터링 및 파싱 중...');
+  const dataRows=rawRows.slice(headerRow+1);
+  resultRows=[]; let excl=0;
+
+  for(const row of dataRows){
+    const bh=String(row[0]||'').trim(), bn=String(row[1]||'').trim();
+    const dm=String(row[2]||'').trim(), hw=Number(row[3])||0;
+    if(!bn||bn==='반명') continue;
+    if(shouldExclude(bn,bh)){excl++;continue;}
+    // 개강일 1개월 이전 필터
+    {
+      const dm=String(row[2]||'');
+      const p=parseBan(bn, dm);
+      const kg=p.개강일;
+      if(kg&&/^\d{1,2}\/\d{1,2}$/.test(kg)){
+        const now=new Date();
+        const cutoff=new Date(now.getFullYear(),now.getMonth()-1,now.getDate());
+        const yr=now.getMonth()<parseInt(kg.split('/')[0])-1?now.getFullYear()-1:now.getFullYear();
+        const d=new Date(yr,parseInt(kg.split('/')[0])-1,parseInt(kg.split('/')[1]));
+        if(d<cutoff){excl++;continue;}
+      }
+    }
+    const p=parseBan(bn,dm);
+    const subj=getSubject(bn,bh,p.강사명);
+    const isMg=bn.startsWith('마감]');
+    const cleanBn=bn.replace(/^마감\]\s*/,'');
+    const key=`${p.강사명}_${p.요일}_${p.시간}_${p.개강일}`;
+    const manual=existingData[key]||{};
+    const isNew=!existingData[key];
+    const status=isMg?'마감':(isNew?'신규':'운영중');
+    resultRows.push({반형태:bh,반명:cleanBn,'정규/특강':p.정규특강,과목:subj,강사명:p.강사명,요일:p.요일,시간:p.시간,요일별시간:p.요일별시간,회차:p.회차,개강일:p.개강일,휴강일:'',현원:hw,월수강료:manual.월수강료||'',회차당수강료:manual.회차당수강료||'',수업특징:manual.수업특징||'',상태:status,관:manual.관||'',강의실:manual.강의실||'',크로스그룹:manual.크로스그룹||'',크로스순서:manual.크로스순서||'',크로스비율:manual.크로스비율||'50:50',_new:isNew});
+  }
+
+  await sleep(50); setP(70,'엑셀 생성 중...'); await sleep(80);
+
+  const COLS=['반형태','반명','정규/특강','과목','강사명','요일','시간','요일별시간','회차','개강일','휴강일','현원','월수강료','회차당수강료','수업특징','상태','관','강의실','크로스그룹','크로스순서','크로스비율'];
+  const newWb=XLSX.utils.book_new();
+  const newWs=XLSX.utils.aoa_to_sheet([COLS,...resultRows.map(r=>COLS.map(c=>r[c]??''))]);
+  newWs['!cols']=[14,45,9,9,12,8,14,18,9,9,15,7,11,11,25,9,8,12,10,10,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(newWb,newWs,'반정보');
+
+  // 설정 시트들도 함께 저장
+  XLSX.utils.book_append_sheet(newWb, XLSX.utils.aoa_to_sheet([['강사명','담당과목','비고'],...CFG.teacher]), '강사설정');
+  XLSX.utils.book_append_sheet(newWb, XLSX.utils.aoa_to_sheet([['관','강의실명','수용인원','유형','담당자','사용여부','비고'],...CFG.room]), '강의실설정');
+  const aHdr=['이름','근무요일',...['월','화','수','목','금','토','일'].flatMap(d=>[`${d}_출근`,`${d}_퇴근`])];
+  XLSX.utils.book_append_sheet(newWb, XLSX.utils.aoa_to_sheet([aHdr,...CFG.asst]), '조교설정');
+
+  setP(100,'완료!');
+  log(`반정보 ${resultRows.length}개 | 제외 ${excl}개 | 신규 ${resultRows.filter(r=>r._new).length}개`,'s');
+
+  const nw=resultRows.filter(r=>r._new).length;
+  document.getElementById('sTotal').textContent=resultRows.length;
+  document.getElementById('sNew').textContent=nw;
+  document.getElementById('sKept').textContent=resultRows.length-nw;
+  document.getElementById('rc').classList.add('show');
+  document.getElementById('rcTitle').textContent='✅ 생성 완료 — 아래에서 바로 수정 후 다운로드하세요';
+  renderEditTable(resultRows);
+  saveRows();
+  document.getElementById('runBtn').disabled=false;
+}
+
+// ══════════════════════════════════════════
+// 편집 테이블 렌더
+// ══════════════════════════════════════════
+function getKanList(){
+  const rooms = CFG.room.length ? collectCfg('room') : CFG.room;
+  const kans = [...new Set(rooms.map(r=>r[0]).filter(Boolean))];
+  return kans;
+}
+function getRoomList(kan){
+  const rooms = CFG.room.length ? collectCfg('room') : CFG.room;
+  return rooms.filter(r=>(!kan||r[0]===kan)&&r[3]!=='사무실'&&r[3]!=='교무실'&&r[5]!=='N').map(r=>r[1]);
+}
+
+function renderEditTable(rows){
+  autoSave();
+  const kans = getKanList();
+  const kanOpts = ['', ...kans].map(k=>`<option value="${k}">${k||'선택'}</option>`).join('');
+  let h = '';
+  rows.forEach((r,i)=>{
+    if(r._filtered) return;
+    const rowCls = r['상태']==='신규'?'row-new':r['상태']==='마감'?'row-magam':'';
+    const rooms4kan = getRoomList(r['관']||'');
+    const roomOpts = ['', ...rooms4kan].map(rm=>`<option value="${rm}"${rm===r['강의실']?' selected':''}>${rm||'선택'}</option>`).join('');
+    const subjCls = r['과목']?`td-subj-${r['과목']}`:'';
+    const statusBadge = r['상태']==='신규'?`<span class="badge-new">신규</span>`:r['상태']==='마감'?`<span class="badge-mg">마감</span>`:`<span class="badge-ok">운영중</span>`;
+    h += `<tr class="${rowCls}" data-idx="${i}">
+      <td class="td-num">${i+1}</td>
+      <td><input type="text" value="${esc(r['반형태'])}" onchange="updateRow(${i},'반형태',this.value)"></td>
+      <td><input type="text" value="${esc(r['반명'])}" onchange="updateRow(${i},'반명',this.value)"></td>
+      <td><select onchange="updateRow(${i},'정규/특강',this.value)">
+        <option${r['정규/특강']==='정규'?' selected':''}>정규</option>
+        <option${r['정규/특강']==='특강'?' selected':''}>특강</option>
+      </select></td>
+      <td class="${subjCls}"><select onchange="updateRow(${i},'과목',this.value)">
+        ${['','수학','국어','영어','과탐','사탐','2응','기타'].map(s=>`<option${s===r['과목']?' selected':''}>${s}</option>`).join('')}
+      </select></td>
+      <td><input type="text" value="${esc(r['강사명'])}" onchange="updateRow(${i},'강사명',this.value)"></td>
+      <td><input type="text" value="${esc(r['요일'])}" onchange="updateRow(${i},'요일',this.value)"></td>
+      <td><input type="text" value="${esc(r['시간'])}" onchange="updateRow(${i},'시간',this.value)"></td>
+      <td><input type="text" value="${esc(r['회차'])}" onchange="updateRow(${i},'회차',this.value)"></td>
+      <td><input type="text" value="${esc(r['개강일'])}" onchange="updateRow(${i},'개강일',this.value)"></td>
+      <td style="white-space:nowrap">
+        <button class="hg-btn" onclick="openCal(${i})">${r['휴강일']||'+ 선택'}</button>
+      </td>
+      <td class="${(()=>{const n=parseInt(r['현원'])||0;return n<=3?'hw-low':n<=10?'hw-mid':n<=20?'hw-high':'hw-full';})()}"><input type="text" value="${esc(r['현원'])}" style="width:40px;text-align:center;background:transparent;color:inherit" onchange="updateRow(${i},'현원',this.value);renderEditTable(resultRows)"></td>
+      <td><select id="kanSel_${i}" onchange="onKanChange(${i},this.value)">
+        ${kanOpts.replace(`value="${r['관']||''}"`,`value="${r['관']||''}" selected`)}
+      </select></td>
+      <td><select id="roomSel_${i}" onchange="updateRow(${i},'강의실',this.value)">${roomOpts}</select></td>
+      <td>${(()=>{
+        const ybs=r['요일별시간']||'';
+        const display=ybs||((r['요일']||'')+(r['시간']||''));
+        const isAuto=!ybs;
+        return `<input type="text" value="${esc(display)}" style="${isAuto?'color:var(--text3);font-style:italic':''}" title="${isAuto?'요일+시간 자동표시 (수정시 저장)':''}" onchange="updateRow(${i},'요일별시간',this.value);renderEditTable(resultRows)">`;
+      })()}</td>
+      <td><input type="text" value="${esc(r['월수강료'])}" style="text-align:right" placeholder="0" onchange="updateRow(${i},'월수강료',this.value)"></td>
+      <td><input type="text" value="${esc(r['회차당수강료'])}" style="text-align:right" placeholder="0" onchange="updateRow(${i},'회차당수강료',this.value)"></td>
+      <td><input type="text" value="${esc(r['수업특징'])}" placeholder="특징 입력" onchange="updateRow(${i},'수업특징',this.value)"></td>
+      <td><input type="text" value="${esc(r['크로스그룹'])}" style="text-align:center" placeholder="A" onchange="updateRow(${i},'크로스그룹',this.value)"></td>
+      <td><select onchange="updateRow(${i},'크로스순서',this.value)">
+        <option value=""${!r['크로스순서']?' selected':''}>-</option>
+        <option value="1"${String(r['크로스순서'])==='1'?' selected':''}>1(앞)</option>
+        <option value="2"${String(r['크로스순서'])==='2'?' selected':''}>2(뒤)</option>
+      </select></td>
+      <td><select onchange="updateRow(${i},'크로스비율',this.value)">
+        ${['50:50','60:40','40:60','70:30','30:70'].map(v=>`<option${v===(r['크로스비율']||'50:50')?' selected':''}>${v}</option>`).join('')}
+      </select></td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  });
+  document.getElementById('editBody').innerHTML = h;
+  initColResize();
+}
+
+function updateRow(idx, field, val){
+  if(resultRows[idx]) resultRows[idx][field] = val;
+  setTimeout(autoSave, 300);
+}
+
+function onKanChange(idx, kan){
+  updateRow(idx,'관',kan);
+  const rooms = getRoomList(kan);
+  const sel = document.getElementById('roomSel_'+idx);
+  sel.innerHTML = ['', ...rooms].map(r=>`<option value="${r}">${r||'선택'}</option>`).join('');
+  updateRow(idx,'강의실','');
+}
+
+// 필터
+document.addEventListener('DOMContentLoaded',()=>{
+  ['filterText','filterSubj','filterStatus'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input', applyFilter);
+  });
+});
+
+function applyFilter(){
+  const txt = (document.getElementById('filterText')?.value||'').toLowerCase();
+  const subj = document.getElementById('filterSubj')?.value||'';
+  const status = document.getElementById('filterStatus')?.value||'';
+  resultRows.forEach(r=>{
+    r._filtered = false;
+    if(txt && !String(r['반명']||'').toLowerCase().includes(txt) && !String(r['강사명']||'').toLowerCase().includes(txt)) r._filtered=true;
+    if(subj && r['과목']!==subj) r._filtered=true;
+    if(status && r['상태']!==status) r._filtered=true;
+  });
+  renderEditTable(resultRows);
+}
+
+// ══════════════════════════════════════════
+// 휴강일 캘린더
+// ══════════════════════════════════════════
+let calTargetIdx = -1;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calDates = new Set(); // 'YYYY-M-D' 형태
+
+function openCal(idx){
+  calTargetIdx = idx;
+  // 기존 선택값 파싱
+  calDates = new Set();
+  const existing = String(resultRows[idx]['휴강일']||'');
+  if(existing.trim()){
+    existing.split(',').forEach(s=>{
+      const m = s.trim().match(/(\d{1,2})\/(\d{1,2})/);
+      if(m) calDates.add(`${calYear}-${parseInt(m[1])}-${parseInt(m[2])}`);
+    });
+  }
+  // 개강일 기준으로 월 설정
+  const kg = String(resultRows[idx]['개강일']||'');
+  const km = kg.match(/(\d{1,2})\//);
+  if(km){ calMonth = parseInt(km[1])-1; }
+  else { calMonth = new Date().getMonth(); }
+  renderCal();
+  const ov = document.getElementById('calOverlay');
+  ov.style.display='flex';
+}
+
+function closeCal(){ document.getElementById('calOverlay').style.display='none'; }
+
+function calPrevMonth(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCal(); }
+function calNextMonth(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+
+function renderCal(){
+  const DOW=['일','월','화','수','목','금','토'];
+  document.getElementById('calTitle').textContent=`${calYear}년 ${calMonth+1}월`;
+  const first = new Date(calYear,calMonth,1).getDay();
+  const days = new Date(calYear,calMonth+1,0).getDate();
+  const today = new Date();
+  let h = DOW.map(d=>`<div class="cal-header">${d}</div>`).join('');
+  for(let i=0;i<first;i++) h+=`<div></div>`;
+  for(let d=1;d<=days;d++){
+    const key=`${calYear}-${calMonth+1}-${d}`;
+    const sel=calDates.has(key)?'selected':'';
+    const tod=(today.getFullYear()===calYear&&today.getMonth()===calMonth&&today.getDate()===d)?'today':'';
+    h+=`<div class="cal-day ${sel} ${tod}" onclick="toggleCalDay('${key}',this)">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=h;
+  updateCalSelected();
+}
+
+function toggleCalDay(key,el){
+  if(calDates.has(key)){calDates.delete(key);el.classList.remove('selected');}
+  else{calDates.add(key);el.classList.add('selected');}
+  updateCalSelected();
+}
+
+function updateCalSelected(){
+  const sorted=[...calDates].sort();
+  const label=sorted.length?sorted.map(k=>{const[y,m,d]=k.split('-');return`${m}/${d}`;}).join(', '):'없음';
+  document.getElementById('calSelected').textContent=label;
+}
+
+function applyCal(){
+  const sorted=[...calDates].sort();
+  const val=sorted.map(k=>{const[y,m,d]=k.split('-');return`${m}/${d}`;}).join(', ');
+  if(calTargetIdx>=0){
+    resultRows[calTargetIdx]['휴강일']=val;
+    renderEditTable(resultRows);
+    saveRows();
+  }
+  closeCal();
+}
+
+function clearCal(){ calDates.clear(); renderCal(); }
+
+
+
+// ══════════════════════════════════════════
+// 컬럼 리사이즈
+// ══════════════════════════════════════════
+
+function initColResize() {
+  const ths = document.querySelectorAll('.edit-tbl thead th');
+  ths.forEach((th, idx) => {
+    // 저장된 너비 복원
+    if (colWidths[idx]) {
+      th.style.minWidth = colWidths[idx] + 'px';
+      th.style.width = colWidths[idx] + 'px';
+    }
+    // 기존 리사이저 제거
+    const old = th.querySelector('.col-resizer');
+    if (old) old.remove();
+    const resizer = document.createElement('div');
+    resizer.className = 'col-resizer';
+    th.appendChild(resizer);
+    let startX, startW, didDrag = false;
+    resizer.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      didDrag = false;
+      startX = e.clientX;
+      startW = th.offsetWidth;
+      resizer.classList.add('dragging');
+      const onMove = e => {
+        didDrag = true;
+        const w = Math.max(40, startW + e.clientX - startX);
+        th.style.minWidth = w + 'px';
+        th.style.width = w + 'px';
+        colWidths[idx] = w;
+      };
+      const onUp = () => {
+        resizer.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    // 드래그가 발생했으면 click(정렬) 이벤트 차단
+    resizer.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+    });
+    // th 자체의 click도 드래그 직후엔 차단
+    th.addEventListener('click', e => {
+      if (didDrag) { e.stopImmediatePropagation(); didDrag = false; }
+    }, true);
+  });
+}
+
+// ══════════════════════════════════════════
+// 정렬
+// ══════════════════════════════════════════
+
+function sortBy(col){
+  if(sortState.col === col){
+    sortState.dir *= -1;
+  } else {
+    sortState.col = col;
+    sortState.dir = 1;
+  }
+  // 헤더 클래스 업데이트
+  document.querySelectorAll('.edit-tbl th').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    const txt = th.childNodes[0]?.textContent?.trim();
+    if(txt === col){
+      th.classList.add(sortState.dir===1?'sort-asc':'sort-desc');
+    }
+  });
+  // 데이터 정렬 (필터 제외 행만)
+  const colMap = {
+    '#': '_origIdx', '반형태':'반형태', '반명':'반명', '정규/특강':'정규/특강',
+    '과목':'과목', '강사명':'강사명', '요일':'요일', '시간':'시간',
+    '회차':'회차', '개강일':'개강일', '휴강일':'휴강일', '현원':'현원',
+    '관':'관', '강의실':'강의실', '요일별시간':'요일별시간',
+    '월수강료':'월수강료', '회차당수강료':'회차당수강료', '수업특징':'수업특징',
+    '크로스그룹':'크로스그룹', '크로스순서':'크로스순서', '크로스비율':'크로스비율',
+    '상태':'상태'
+  };
+  const field = colMap[col] || col;
+  resultRows.sort((a,b)=>{
+    let va = a[field]??'', vb = b[field]??'';
+    // 숫자 비교
+    if(!isNaN(va) && !isNaN(vb) && va!=='' && vb!==''){
+      return (Number(va)-Number(vb)) * sortState.dir;
+    }
+    return String(va).localeCompare(String(vb),'ko') * sortState.dir;
+  });
+  renderEditTable(resultRows);
+}
+
+// ══════════════════════════════════════════
+// localStorage 자동저장/복원
+// ══════════════════════════════════════════
+const ROWS_KEY = 'banjg_resultRows';
+
+function saveRows(){
+  try{
+    // _filtered 제외하고 저장
+    const toSave = resultRows.map(r=>{
+      const {_filtered, _new, ...rest} = r;
+      return rest;
+    });
+    localStorage.setItem(ROWS_KEY, JSON.stringify(toSave));
+  } catch(e){ console.warn('저장 실패:', e); }
+}
+
+function loadRows(){
+  try{
+    const v = localStorage.getItem(ROWS_KEY);
+    if(!v) return null;
+    return JSON.parse(v);
+  } catch{ return null; }
+}
+
+function restoreRows(){
+  const saved = loadRows();
+  if(!saved || !saved.length) return false;
+  resultRows = saved;
+  // 원래 인덱스 복원
+  resultRows.forEach((r,i)=>r._origIdx=i);
+  const nw = resultRows.filter(r=>r['상태']==='신규').length;
+  document.getElementById('sTotal').textContent = resultRows.length;
+  document.getElementById('sNew').textContent = nw;
+  document.getElementById('sKept').textContent = resultRows.length - nw;
+  document.getElementById('rc').classList.add('show');
+  document.getElementById('rcTitle').textContent='🔄 마지막 작업 내용이 복원되었습니다';
+  renderEditTable(resultRows);
+  log(`마지막 저장 데이터 복원: ${resultRows.length}개`, 'i');
+  return true;
+}
+
+// ══════════════════════════════════════════
+// 다운로드
+// ══════════════════════════════════════════
+function doDownload(){
+  const COLS=['반형태','반명','정규/특강','과목','강사명','요일','시간','요일별시간','회차','개강일','휴강일','현원','월수강료','회차당수강료','수업특징','상태','관','강의실','크로스그룹','크로스순서','크로스비율'];
+  const newWb=XLSX.utils.book_new();
+  const data=[COLS,...resultRows.map(r=>COLS.map(c=>r[c]??''))];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[14,45,9,9,12,8,14,18,9,9,15,7,11,11,25,9,8,12,10,10,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(newWb,ws,'반정보');
+  // 설정 시트 포함
+  XLSX.utils.book_append_sheet(newWb,XLSX.utils.aoa_to_sheet([['강사명','담당과목','비고'],...CFG.teacher]),'강사설정');
+  XLSX.utils.book_append_sheet(newWb,XLSX.utils.aoa_to_sheet([['관','강의실명','수용인원','유형','담당자','사용여부','비고'],...CFG.room]),'강의실설정');
+  const aHdr=['이름','근무요일',...['월','화','수','목','금','토','일'].flatMap(d=>[`${d}_출근`,`${d}_퇴근`])];
+  XLSX.utils.book_append_sheet(newWb,XLSX.utils.aoa_to_sheet([aHdr,...CFG.asst]),'조교설정');
+  XLSX.writeFile(newWb,'반정보시트.xlsx');
+}
+
+
+
+// ══════════════════════════════════════════
+// 컬럼 리사이즈
+// ══════════════════════════════════════════
+const colWidths = {}; // 열 너비 저장소 - 정렬/재렌더 후에도 유지
+
+
+// ══════════════════════════════════════════
+// 정렬
+// ══════════════════════════════════════════
+let sortState = { field: '', dir: 0 }; // dir: 0=없음 1=오름 -1=내림
+
+function sortTable(field) {
+  if (sortState.field === field) {
+    sortState.dir = sortState.dir === 1 ? -1 : sortState.dir === -1 ? 0 : 1;
+  } else {
+    sortState.field = field;
+    sortState.dir = 1;
+  }
+  // 헤더 아이콘 업데이트
+  document.querySelectorAll('.edit-tbl th.sortable').forEach(th => {
+    th.classList.remove('sort-asc','sort-desc');
+  });
+  if (sortState.dir !== 0) {
+    document.querySelectorAll('.edit-tbl th.sortable').forEach(th => {
+      if (th.textContent.trim().startsWith(field)) {
+        th.classList.add(sortState.dir === 1 ? 'sort-asc' : 'sort-desc');
+      }
+    });
+  }
+  if (sortState.dir === 0) {
+    sortState.field = '';
+    renderEditTable(resultRows);
+    return;
+  }
+  const sorted = [...resultRows].sort((a, b) => {
+    let va = String(a[field] || ''), vb = String(b[field] || '');
+    // 숫자 필드
+    if (field === '현원' || field === '월수강료' || field === '회차당수강료') {
+      va = parseFloat(va) || 0; vb = parseFloat(vb) || 0;
+      return sortState.dir * (va - vb);
+    }
+    // 개강일 날짜 정렬 (3/2, 4/18, 5월 등)
+    if (field === '개강일') {
+      const toNum = s => {
+        const m1 = s.match(/^(\d{1,2})\/(\d{1,2})/);
+        if (m1) return parseInt(m1[1])*100 + parseInt(m1[2]);
+        const m2 = s.match(/^(\d{1,2})월/);
+        if (m2) return parseInt(m2[1])*100 + 99;
+        return 9999;
+      };
+      return sortState.dir * (toNum(va) - toNum(vb));
+    }
+    return sortState.dir * va.localeCompare(vb, 'ko');
+  });
+  renderEditTable(sorted);
+}
+
+// ══════════════════════════════════════════
+// 자동저장 / 복원
+// ══════════════════════════════════════════
+const SAVE_KEY = 'banjg_lastResult';
+
+function autoSave() {
+  try {
+    const data = { rows: resultRows, savedAt: new Date().toLocaleString('ko-KR'), count: resultRows.length };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    const bar = document.getElementById('autosaveBar');
+    bar.classList.add('show');
+    setTimeout(() => bar.classList.remove('show'), 2000);
+  } catch(e) {}
+}
+
+function checkRestore() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data.rows || !data.rows.length) return;
+    const bar = document.getElementById('restoreBar');
+    const msg = document.getElementById('restoreMsg');
+    msg.textContent = `마지막 저장: ${data.savedAt} (${data.count}개 반) — 불러올까요?`;
+    bar.classList.add('show');
+    document.getElementById('rc').classList.add('show');
+    window._restoreData = data;
+  } catch(e) {}
+}
+
+function restoreData() {
+  if (!window._restoreData) return;
+  resultRows = window._restoreData.rows.map(r=>{
+    // 요일별시간이 요일+시간 단순결합이면 비워서 자동표시로 처리
+    const ybs = String(r['요일별시간']||'');
+    const combined = (r['요일']||'')+(r['시간']||'');
+    if(ybs && ybs===combined) r['요일별시간']='';
+    return r;
+  });
+  document.getElementById('restoreBar').classList.remove('show');
+  renderEditTable(resultRows);
+  const d = window._restoreData;
+  document.getElementById('sTotal').textContent = d.count;
+  document.getElementById('sNew').textContent = d.rows.filter(r=>r._new).length;
+  document.getElementById('sKept').textContent = d.rows.filter(r=>!r._new).length;
+}
+
+function dismissRestore() {
+  document.getElementById('restoreBar').classList.remove('show');
+  document.getElementById('rc').classList.remove('show');
+}
+
+
+// ══════════════════════════════════════════
+// 설정 탭 테이블 정렬
+// ══════════════════════════════════════════
+const cfgSortState = {teacher:{f:'',d:0}, room:{f:'',d:0}, asst:{f:'',d:0}};
+
+function sortCfgTable(type, field, thEl) {
+  const st = cfgSortState[type];
+  if(st.f === field) { st.d = st.d===1?-1:st.d===-1?0:1; }
+  else { st.f=field; st.d=1; }
+  // 헤더 아이콘
+  thEl.closest('thead').querySelectorAll('th').forEach(t=>{
+    t.classList.remove('sort-asc','sort-desc');
+    const ic=t.querySelector('.sort-icon'); if(ic) ic.remove();
+  });
+  if(st.d!==0){
+    thEl.classList.add(st.d===1?'sort-asc':'sort-desc');
+  }
+  const ic=document.createElement('span');
+  ic.className='sort-icon';
+  thEl.appendChild(ic);
+
+  if(st.d===0){ if(type==='teacher') renderTeacher(); else if(type==='room') renderRoom(); else renderAsst(); return; }
+
+  CFG[type] = [...CFG[type]].sort((a,b)=>{
+    const idx = ['teacher','room','asst'].indexOf(type);
+    const headers = type==='teacher'?['강사명','담당과목','비고']:
+                    type==='room'?['관','강의실명','수용인원','유형','담당자','사용여부','비고']:
+                    ['이름','근무요일','월_출근','월_퇴근','화_출근','화_퇴근','수_출근','수_퇴근','목_출근','목_퇴근','금_출근','금_퇴근','토_출근','토_퇴근','일_출근','일_퇴근'];
+    const ci = headers.indexOf(field);
+    if(ci<0) return 0;
+    const va=String(a[ci]||''), vb=String(b[ci]||'');
+    if(field==='수용인원') return st.d*((parseFloat(va)||0)-(parseFloat(vb)||0));
+    return st.d*va.localeCompare(vb,'ko');
+  });
+  if(type==='teacher') renderTeacher();
+  else if(type==='room') renderRoom();
+  else renderAsst();
+}
+
+// ══════════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════════
+renderTeacher(); renderRoom(); renderAsst();
+// 마지막 저장 데이터 자동 복원
+if(restoreRows()){
+  document.getElementById('pw').classList.add('show');
+}
+checkRestore();
+
+// ════ 배정표생성기 JS ════
+let schedResultWb=null;
+
+// ══════════════════════════════════════════════
+// 상수
+// ══════════════════════════════════════════════
+const GS = 8*60, GE = 22*60+30, IV = 15;
+const GR = (GE-GS)/IV+1; // 59 time rows
+const HDR = 3;             // 0-indexed header rows (0,1,2)
+const BIGO = HDR+GR;       // 비고 row index
+
+const DN = ['일','월','화','수','목','금','토'];
+const DI = {일:0,월:1,화:2,수:3,목:4,금:5,토:6};
+
+const CLR = {
+  수학:['FF674EA7','FFD9D2E9'], 국어:['FF38761D','FFD9EAD3'],
+  영어:['FFB45F06','FFFCE5CD'], 과탐:['FF741B47','FFEAD1DC'],
+  사탐:['FF85200C','FFF4CCCC'], 설명회:['FF660000','FFF4CCCC'],
+  '2응':['FF274E13','FFD9EAD3'], 조교:['FF4A86C8','FFC9DAF8'],
+  기타:['FF555555','FFE0E0E0'],
+};
+
+
+// ══════════════════════════════════════════════
+// 파싱 함수
+// ══════════════════════════════════════════════
+function parseT(s){
+  if(!s) return null;
+  s=String(s).trim().replace(/\s+/g,'');
+  const m=s.match(/^([paPA]m?)([\d]+(?::\d{2})?)[~\-]([paPA]m?)?([\d]+(?::\d{2})?)$/i);
+  if(!m) return null;
+  const[,sp,st,ep,et]=m;
+  function toM(px,t){
+    let h,mn=0;
+    if(t.includes(':'))[h,mn]=t.split(':').map(Number); else h=parseInt(t);
+    if(/^[pP]/.test(px)&&h<12) h+=12;
+    if(/^[aA]/.test(px)&&h===12) h=0;
+    return h*60+mn;
+  }
+  const sm=toM(sp,st);
+  let em=toM(ep||sp,et);
+  if(em<=sm) em+=12*60;
+  if(em<=sm) return null;
+  return{start:sm,end:em};
+}
+
+function getTR(cls,dow){
+  const ybs=String(cls['요일별시간']||'');
+  if(ybs.includes('/')){
+    const[t1,t2]=ybs.split('/');
+    return parseT((dow===0||dow===6)?t2:t1);
+  }
+  return parseT(String(cls['시간']||''));
+}
+
+function fmt(m){return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+
+function tsToM(s){
+  if(!s) return null;
+  const m=String(s).match(/(\d{1,2}):(\d{2})/);
+  return m?parseInt(m[1])*60+parseInt(m[2]):null;
+}
+
+// ══════════════════════════════════════════════
+// 날짜 헬퍼
+// ══════════════════════════════════════════════
+function parseDays(s){
+  if(!s) return new Set();
+  return new Set([...String(s)].map(c=>DI[c]).filter(v=>v!==undefined));
+}
+
+function parseMD(s,yr){
+  if(!s) return null;
+  const m=String(s).match(/(\d{1,2})\/(\d{1,2})/);
+  return m?new Date(yr,parseInt(m[1])-1,parseInt(m[2])):null;
+}
+
+function parseHugang(s,yr){
+  if(!s) return [];
+  return String(s).split(/[,，\s]+/).map(x=>parseMD(x.trim(),yr)).filter(Boolean);
+}
+
+function sameD(a,b){return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function dk(d){return`${d.getFullYear()}${d.getMonth()}${d.getDate()}`}
+
+// ══════════════════════════════════════════════
+// 일정 계산
+// ══════════════════════════════════════════════
+function calcSched(cls,allDates,yr){
+  const days=parseDays(cls['요일']);
+  if(!days.size) return{};
+  const gg=parseMD(String(cls['개강일']||''),yr);
+  const hg=parseHugang(String(cls['휴강일']||''),yr);
+  const isJG=String(cls['정규/특강'])==='정규';
+  const tot=isJG?Infinity:(parseInt(String(cls['회차']))||0);
+  const sc={};
+  let cnt=0;
+  for(const d of allDates){
+    if(gg&&d<gg) continue;
+    if(!days.has(d.getDay())) continue;
+    const isH=hg.some(h=>sameD(h,d));
+    const k=dk(d);
+    if(isH){sc[k]={type:'hugang'};continue;}
+    if(!isJG&&cnt>=tot) break;
+    cnt++;
+    sc[k]={type:'class',n:cnt,total:isJG?null:tot,isGG:cnt===1};
+  }
+  return sc;
+}
+
+// ══════════════════════════════════════════════
+// XLSX 셀 헬퍼
+// ══════════════════════════════════════════════
+function sc(ws,r,c,v,s){
+  const ref=XLSX.utils.encode_cell({r,c});
+  ws[ref]={v:v===null||v===undefined?'':String(v),t:'s',s:s||{}};
+}
+
+function bd(color='FFCCCCCC'){
+  const b={style:'thin',color:{rgb:color}};
+  return{top:b,bottom:b,left:b,right:b};
+}
+
+function cs(fill,fc='FF222222',sz=9,bold=false,wrap=true){
+  return{
+    fill:fill?{patternType:'solid',fgColor:{rgb:fill}}:{},
+    font:{color:{rgb:fc},sz,bold,name:'Arial'},
+    alignment:{horizontal:'center',vertical:'center',wrapText:wrap},
+    border:bd(),
+  };
+}
+
+function getC(subject){return CLR[String(subject||'')]||CLR['기타']}
+
+// ══════════════════════════════════════════════
+// 시트 생성
+// ══════════════════════════════════════════════
+function genSheet(date,csArr,rooms,assistants){
+  const ws={};
+  const key=dk(date);
+  const nc=rooms.length;
+
+  ws['!cols']=[{wch:7},...rooms.map(()=>({wch:13}))];
+  ws['!rows']=[{hpt:26},{hpt:20},{hpt:17},...Array(GR).fill({hpt:14}),{hpt:16}];
+
+  // Row 0: 타이틀
+  const dlabel=`${date.getMonth()+1}월 ${date.getDate()}일 (${DN[date.getDay()]})`;
+  sc(ws,0,0,'강의실 배정표',{fill:{patternType:'solid',fgColor:{rgb:'FF1F3864'}},font:{color:{rgb:'FFFFFFFF'},sz:12,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd('FF2F4F7F')});
+  for(let c=1;c<=nc;c++){
+    const isLast=c===nc;
+    sc(ws,0,c,isLast?dlabel:'',{fill:{patternType:'solid',fgColor:{rgb:'FF1F3864'}},font:{color:{rgb:isLast?'FFFFFFCC':'FFFFFFFF'},sz:isLast?10:9,bold:isLast,name:'Arial'},alignment:{horizontal:isLast?'right':'center',vertical:'center'},border:bd('FF2F4F7F')});
+  }
+
+  // Row 1: 강의실명
+  sc(ws,1,0,'강의실',cs('FFEFEFEF','FF333333',10,true));
+  rooms.forEach((rm,i)=>{
+    const sp=rm.유형!=='수업용';
+    sc(ws,1,i+1,rm.강의실명||'',{fill:{patternType:'solid',fgColor:{rgb:sp?'FFFFF2CC':'FFEFEFEF'}},font:{color:{rgb:'FF222222'},sz:9,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd('FFCCCCCC')});
+  });
+
+  // Row 2: 수용인원
+  sc(ws,2,0,'인원',cs('FFEFEFEF','FF666666',8));
+  rooms.forEach((rm,i)=>{
+    const cap=rm.수용인원>0?`${rm.수용인원}명`:(rm.담당자||'');
+    const sp=rm.유형!=='수업용';
+    sc(ws,2,i+1,cap,{fill:{patternType:'solid',fgColor:{rgb:sp?'FFFFF2CC':'FFFFFFFF'}},font:{color:{rgb:sp?'FF994400':'FF666666'},sz:8,bold:sp,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd('FFDDDDDD')});
+  });
+
+  // 시간 행 + 빈 셀
+  for(let i=0;i<GR;i++){
+    const m=GS+i*IV;
+    const h=Math.floor(m/60), mn=m%60;
+    const ts=mn===0?`${String(h).padStart(2,'0')}:00`:(mn===30?`${String(h).padStart(2,'0')}:30`:'');
+    const isH=mn===0;
+    sc(ws,HDR+i,0,ts,{fill:{patternType:'solid',fgColor:{rgb:isH?'FFD6E4F7':'FFF0F5FF'}},font:{color:{rgb:isH?'FF2244AA':'FF8899CC'},sz:8,bold:isH,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd(isH?'FFBBCCEE':'FFDDEEFF')});
+    for(let c=1;c<=nc;c++){
+      sc(ws,HDR+i,c,'',{fill:{patternType:'solid',fgColor:{rgb:isH?'FFFAFBFE':'FFFFFFFF'}},border:bd(isH?'FFDDDDDD':'FFF5F5F5')});
+    }
+  }
+
+  // 비고 행
+  sc(ws,BIGO,0,'비 고',cs('FFEFEFEF','FF666666',9));
+  for(let c=1;c<=nc;c++) sc(ws,BIGO,c,'',cs('FFFFFFFF'));
+
+  // 조교 배치 (강의실 없는 조교는 빈 컬럼에 배치 - 향후 확장)
+  assistants.forEach(as=>{
+    const dw=as.dayWork[DN[date.getDay()]];
+    if(!dw) return;
+    const sm=tsToM(dw.start), em=tsToM(dw.end);
+    if(!sm||!em) return;
+    const sgr=Math.round((sm-GS)/IV);
+    const egr=Math.round((em-GS)/IV)-1;
+    if(sgr<0||egr>=GR||sgr>egr) return;
+    // 조교 컬럼 = 강의실 없는 특별 컬럼으로 향후 구현
+    // 현재는 로그만
+  });
+
+  // 수업 배치
+  let placed=0;
+  csArr.forEach(({cls,sched})=>{
+    if(!sched[key]) return;
+    const rn=String(cls['강의실']||'').trim();
+    if(!rn) return;
+    const ri=rooms.findIndex(r=>r.강의실명===rn);
+    if(ri<0) return;
+    const ci=ri+1;
+    const si=sched[key];
+    const tr=getTR(cls,date.getDay());
+    if(!tr) return;
+
+    // 크로스 분할
+    let eff=tr;
+    const cg=String(cls['크로스그룹']||'').trim();
+    const co=parseInt(String(cls['크로스순서']||'0'));
+    if(cg&&co){
+      const[r1,r2]=(String(cls['크로스비율']||'50:50')).split(':').map(Number);
+      const tot2=eff.end-eff.start;
+      const mid=eff.start+Math.round(tot2*r1/(r1+r2));
+      eff=co===1?{start:eff.start,end:mid}:{start:mid,end:eff.end};
+    }
+    placeBlock(ws,cls,ci,eff,si);
+    placed++;
+  });
+
+  ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:BIGO,c:nc}});
+  return{ws,placed};
+}
+
+// ══════════════════════════════════════════════
+// 수업 블록 배치
+// ══════════════════════════════════════════════
+function placeBlock(ws,cls,ci,tr,si){
+  const[dark,light]=getC(cls['과목']||'');
+  const sgr=Math.round((tr.start-GS)/IV);
+  const egr=Math.round((tr.end-GS)/IV)-1;
+  if(sgr<0||sgr>=GR||egr<0||egr>=GR||sgr>egr) return;
+
+  const sr=HDR+sgr, er=HDR+egr;
+
+  // 회차 셀 (블록 바로 위)
+  if(sr>HDR){
+    const pr=sr-1;
+    if(si.type==='hugang'){
+      sc(ws,pr,ci,'휴강',{fill:{patternType:'solid',fgColor:{rgb:'FFCC0000'}},font:{color:{rgb:'FFFFFFFF'},sz:9,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bd('FFAA0000')});
+      for(let r=sr;r<=er;r++) sc(ws,r,ci,r===sr?'휴강':'',{fill:{patternType:'solid',fgColor:{rgb:'FFFFE0E0'}},font:{color:{rgb:'FFCC0000'},sz:8,bold:r===sr,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd('FFEEAAAA')});
+      return;
+    }
+    if(si.isGG){
+      const txt=si.total?`개강\n1/${si.total}회`:'개강';
+      sc(ws,pr,ci,txt,{fill:{patternType:'solid',fgColor:{rgb:'FF880000'}},font:{color:{rgb:'FFFFFFFF'},sz:8,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bd('FF660000')});
+    } else if(si.total){
+      sc(ws,pr,ci,`${si.n}/${si.total}회`,{fill:{patternType:'solid',fgColor:{rgb:'FFFFFFFF'}},font:{color:{rgb:'FF555555'},sz:8,name:'Arial'},alignment:{horizontal:'center',vertical:'center'},border:bd('FFDDDDDD')});
+    }
+  }
+  if(si.type==='hugang') return;
+
+  let r=sr;
+
+  // 현원 행 (dark, 빨간 글씨)
+  if(r<=er){
+    const hw=cls['현원']?`${cls['현원']}명`:'';
+    sc(ws,r,ci,hw,{fill:{patternType:'solid',fgColor:{rgb:dark}},font:{color:{rgb:'FFFF4444'},sz:9,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bd('FF111111')});
+    r++;
+  }
+
+  // 과목\n(요일) 행 (dark, 흰 글씨)
+  if(r<=er){
+    const days=cls['요일']?`(${cls['요일']})`:' ';
+    const subj=cls['과목']?`${cls['과목']}\n${days}`:days;
+    sc(ws,r,ci,subj,{fill:{patternType:'solid',fgColor:{rgb:dark}},font:{color:{rgb:'FFFFFFFF'},sz:9,bold:true,name:'Arial'},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bd('FF111111')});
+    r++;
+  }
+
+  // light 행: 강사명 → 반명요약 → 시작시간 순
+  const items=[];
+  if(cls['강사명']) items.push(String(cls['강사명']));
+  if(cls['반명']){
+    let nm=String(cls['반명']);
+    nm=nm.replace(/^[^)]*\)\s*/,'').replace(/\[.*?\]/g,'').trim().substring(0,18);
+    if(nm) items.push(nm);
+  }
+  items.push(fmt(tr.start));
+
+  let idx=0;
+  while(r<=er){
+    sc(ws,r,ci,idx<items.length?items[idx]:'',{fill:{patternType:'solid',fgColor:{rgb:light}},font:{color:{rgb:'FF333333'},sz:8,name:'Arial'},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bd('FFBBBBBB')});
+    r++;idx++;
+  }
+}
+
+// ══════════════════════════════════════════════
+// 로그 / 진행상태
+// ══════════════════════════════════════════════
+function schedLog(msg,type=''){
+  const el=document.getElementById('schedLa');
+  const l=document.createElement('div');
+  l.className='ll '+type; l.textContent='> '+msg;
+  el.appendChild(l); el.scrollTop=el.scrollHeight;
+}
+function schedSetP(pct,msg){document.getElementById('schedPb').style.width=pct+'%';document.getElementById('schedPt').textContent=msg;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function getSheetName(d){return`${d.getMonth()+1}${d.getDate()}(${DN[d.getDay()]})`}
+
+// ══════════════════════════════════════════════
+// 메인 생성
+// ══════════════════════════════════════════════
+async function runGenerate(){
+  if(!srcWb){alert('반정보시트.xlsx를 먼저 업로드해주세요!');return;}
+  document.getElementById('schedPw').classList.add('show');
+  document.getElementById('schedRunBtn').disabled=true;
+  document.getElementById('schedLa').innerHTML='';
+  document.getElementById('schedRc').classList.remove('show');
+  await sleep(50);
+  schedSetP(5,'설정 확인 중...');
+
+  const ss=document.getElementById('startDate').value;
+  const es=document.getElementById('endDate').value;
+  const fn=document.getElementById('schedFileName').value||'강의실배정표';
+  if(!ss||!es){schedLog('시작일/종료일을 입력해주세요.','e');return;}
+
+  const sd=new Date(ss), ed=new Date(es);
+  const yr=sd.getFullYear();
+  if(sd>ed){schedLog('종료일이 시작일보다 이전입니다.','e');return;}
+
+  schedSetP(10,'일정 계산 중...');
+  await sleep(50);
+
+  const allDates=[];
+  const d=new Date(sd);
+  while(d<=ed){allDates.push(new Date(d));d.setDate(d.getDate()+1);}
+  schedLog(`기간: ${ss} ~ ${es} (${allDates.length}일)`,'i');
+  schedLog(`반: ${classes.length}개, 강의실: ${rooms.length}개`,'i');
+
+  // 일정 사전 계산
+  const csArr=classes.map(cls=>({cls,sched:calcSched(cls,allDates,yr)}));
+  schedSetP(20,'일정 계산 완료');
+  await sleep(50);
+
+  const wb=XLSX.utils.book_new();
+  let totalPlaced=0;
+  const usedRooms=new Set();
+
+  for(let i=0;i<allDates.length;i++){
+    const date=allDates[i];
+    if(i%5===0){
+      schedSetP(20+Math.round(i/allDates.length*75),`${date.getMonth()+1}/${date.getDate()} 시트 생성 (${i+1}/${allDates.length})`);
+      await sleep(5);
+    }
+    const{ws,placed}=genSheet(date,csArr,rooms,assistants);
+    const sn=getSheetName(date);
+    try{XLSX.utils.book_append_sheet(wb,ws,sn);}
+    catch(e){schedLog(`시트 오류: ${sn}`,'w');}
+    totalPlaced+=placed;
+  }
+
+  classes.forEach(c=>{if(c['강의실'])usedRooms.add(c['강의실']);});
+
+  schedSetP(100,'완료!');
+  schedLog(`✅ 완료! ${allDates.length}시트 / ${totalPlaced}건 배치`,'s');
+
+  document.getElementById('sDays').textContent=allDates.length;
+  document.getElementById('sClasses').textContent=classes.length;
+  document.getElementById('sRooms').textContent=usedRooms.size;
+  document.getElementById('schedRc').classList.add('show');
+
+  schedResultWb=wb;
+    document.getElementById('schedRunBtn').disabled=false;
+}
+
+function doSchedDownload(){
+  if(!schedResultWb) return;
+  XLSX.writeFile(schedResultWb,(document.getElementById('schedFileName').value||'강의실배정표')+'.xlsx');
+}
+
+</script>
+</body>
+</html>
